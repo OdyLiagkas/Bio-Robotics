@@ -490,7 +490,7 @@ void loop() {
     sequence_of_moves(block_array);
 */
   static int counter = 0;
-  static int block_array[] = {0,0,0,0,0,0}; //FINAL BLOCK ALWAYS 14!!
+  static int block_array[] = {0,0,0,0,0,14}; //FINAL BLOCK ALWAYS 14!!
 
   // Real-time IMU update (angle integration)
   trackRotationUpdate();
