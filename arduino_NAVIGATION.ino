@@ -5,6 +5,12 @@
 #include <I2Cdev.h>
 #include <Servo.h>
 
+// ==== lEDS
+#include <FastLED.h>
+#define NUM_LEDS 8
+#define DATA_PIN 38
+
+
 // ===== Distance sensor =====
 VL53L1X sensorDist;
 #define XSHUT_CENTER 39
@@ -121,7 +127,13 @@ void calibrateGyroZ(int samples = 200) {
   Serial.println(gyroZ_offset);
 }
 
+// Define the array of leds
+CRGB leds[NUM_LEDS];
+
+
 void setup() {
+ FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+ FastLED.setBrightness(50);  
   
   playMarioTune();
 
@@ -172,26 +184,381 @@ void setup() {
 
   playTwinkleTune();
 }
+/* C++ CODE
+#include <iostream>
+using namespace std;
+
+const int STEP = 262; //in mm
+const int ROTATION = 90; //in degrees
+
+int x=0;
+int y=0;
+bool orientation_in_X = true;
+int fx=0;
+int fy=0;
+int dx=0;
+int dy=0;
+
+void block2coords(int BLOCK, int& fx, int& fy){
+switch (BLOCK) {
+    case 0: //START TILE
+        fx = 0;
+        fy = 0;
+        break; 
+    case 1:
+        fx = 1;
+        fy = 0;
+        break; 
+    case 2:
+        fx = 2;
+        fy = 0;
+        break; 
+    case 3:
+        fx = 0;
+        fy = 1;
+        break; 
+    case 4:
+        fx = 1;
+        fy = 1;
+        break; 
+    case 5:
+        fx = 2;
+        fy = 1;
+        break; 
+    case 6:
+        fx = 0;
+        fy = 2;
+        break; 
+    case 7:
+        fx = 1;
+        fy = 2;
+        break; 
+    case 8:
+        fx = 2;
+        fy = 2;
+        break; 
+    case 9:
+        fx = 0;
+        fy = 3;
+        break; 
+    case 10:
+        fx = 1;
+        fy = 3;
+        break; 
+    case 11:
+        fx = 2;
+        fy = 3;
+        break; 
+    case 12:
+        fx = 1;
+        fy = 4;
+        break; 
+    case 13:
+        fx = 2;
+        fy = 4;
+        break; 
+    case 14: // END TILE
+        fx = 0;
+        fy = 4;
+        break; 
+
+}
+}
+
+void find_dx_dy(int x, int y, int fx, int fy, int& dx, int& dy){ //d-> differnece, f->future
+    dx = fx-x;
+    dy = fy-y;
+}
+
+void move(int& x, int& y, int dx, int dy){
+
+    //movement in X axis//////////////////
+    if(dx>0){
+        //MOVE F by dx * STEP
+    }
+    else if(dx<0){
+        //MOVE B by -dx * STEP
+    }
+
+    //movement in Y axis//////////////////
+    //RORATE by ROTATION (90)
+    if(dy>0){
+        //MOVE F by dy * STEP
+    }
+    else if(dy<0){
+        //MOVE B by -dy * STEP
+    }    
+    //ROTATE by -ROTATION (-90) to return to original orientation
+
+    x += dx;
+    y += dy;
+}
+
+void sequence_of_moves(int * block_array){
+    int block;
+    for(int i=0;i<6;i++){
+        block = block_array[i];
+        block2coords(block, fx, fy);
+        find_dx_dy(x, y, fx, fy, dx, dy);
+        move(x, y, dx, dy);
+        cout<<"CURRENT X is="<<x<<" AND CURRENT Y is="<<y<<endl;
+    }
+
+}
+
+int main(){
+
+    int block_array[] = {9,12,4,8,13,14}; //FINAL BLOCK ALWAYS 14!!
+
+    sequence_of_moves(block_array);
+
+    return 0;
+}
+*/
+const int STEP = 262; //in mm
+const int ROTATION = 90; //in degrees
+
+int x=0;
+int y=0;
+bool orientation_in_X = true;
+int fx=0;
+int fy=0;
+int dx=0;
+int dy=0;
+
+void block2coords(int BLOCK, int& fx, int& fy){
+switch (BLOCK) {
+    case 0: //START TILE
+        fx = 0;
+        fy = 0;
+        break; 
+    case 1:
+        fx = 1;
+        fy = 0;
+        break; 
+    case 2:
+        fx = 2;
+        fy = 0;
+        break; 
+    case 3:
+        fx = 0;
+        fy = 1;
+        break; 
+    case 4:
+        fx = 1;
+        fy = 1;
+        break; 
+    case 5:
+        fx = 2;
+        fy = 1;
+        break; 
+    case 6:
+        fx = 0;
+        fy = 2;
+        break; 
+    case 7:
+        fx = 1;
+        fy = 2;
+        break; 
+    case 8:
+        fx = 2;
+        fy = 2;
+        break; 
+    case 9:
+        fx = 0;
+        fy = 3;
+        break; 
+    case 10:
+        fx = 1;
+        fy = 3;
+        break; 
+    case 11:
+        fx = 2;
+        fy = 3;
+        break; 
+    case 12:
+        fx = 1;
+        fy = 4;
+        break; 
+    case 13:
+        fx = 2;
+        fy = 4;
+        break; 
+    case 14: // END TILE
+        fx = 0;
+        fy = 4;
+        break; 
+
+}
+}
+
+void find_dx_dy(int x, int y, int fx, int fy, int& dx, int& dy){ //d-> differnece, f->future
+    dx = fx-x;
+    dy = fy-y;
+}
+
+void move(int& x, int& y, int dx, int dy){
+    static String movement = "";
+    int distance = 0;
+
+    //movement in X axis//////////////////
+    if(dx>0){
+        //MOVE F by dx * STEP
+      distance = dx*STEP;
+      movement = "F"+ String(distance);
+      processChassisCommand(movement);
+    }
+    else if(dx<0){
+        //MOVE B by -dx * STEP
+        distance = (-dx)*STEP;
+      movement = "B"+ String(distance);
+      processChassisCommand(movement);
+    }
+
+    //movement in Y axis//////////////////
+    //RORATE by ROTATION (90)
+    if(dy>0){
+      //TESTTEST
+      processChassisCommand("ML90");
+        //MOVE F by dy * STEP
+        distance = dy*STEP;
+      movement = "F"+ String(distance);
+      processChassisCommand(movement);
+      processChassisCommand("MR90");
+    }
+    else if(dy<0){
+      processChassisCommand("ML90");
+        //MOVE B by -dy * STEP
+        distance = (-dy)*STEP;
+      movement = "B"+ String(distance);
+      processChassisCommand(movement);
+      processChassisCommand("MR90");
+    }    
+    //ROTATE by -ROTATION (-90) to return to original orientation
+
+    x += dx;
+    y += dy;
+}
+
+void sequence_of_moves(int * block_array){
+    int block;
+  for (int i = 0; i < 6; i++) {
+    block = block_array[i];
+    block2coords(block, fx, fy);
+    find_dx_dy(x, y, fx, fy, dx, dy);
+    move(x, y, dx, dy);
+
+    // Choose LED color based on i
+    switch (i) {
+      case 0:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Green; } FastLED.show();
+        break;
+      case 1:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Red; } FastLED.show();
+        break;
+      case 2:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Blue; } FastLED.show();
+        break;
+      case 3:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Pink; } FastLED.show();
+        break;
+      case 4:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Cyan; } FastLED.show();
+        break;
+      case 5:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Yellow; } FastLED.show();
+        break;
+      default:
+        for(int i = 0; i<8; i++){ leds[i] = CRGB::Black; } FastLED.show(); // fallback color
+        break;
+    } // green/red/blue/pink/cyan/yellow
+
+    // Flash LEDs
+    delay(500);  // on
+    for(int i = 0; i<8; i++){ leds[i] = CRGB::Black; } FastLED.show();
+  }
+
+
+}
 
 void loop() {
   static String input = "";
 
+/*
+    int block_array[] = {9,12,4,8,13,14}; //FINAL BLOCK ALWAYS 14!!
+
+    sequence_of_moves(block_array);
+*/
+  static int counter = 0;
+  static int block_array[] = {0,0,0,0,0,0}; //FINAL BLOCK ALWAYS 14!!
+
   // Real-time IMU update (angle integration)
   trackRotationUpdate();
- 
-  // read serial input e.g. F100; forward 10 cm MR90; clockwise rotation for 90 degrees
-  while (Serial.available() > 0) {
-    char ch = Serial.read();
-    if (ch == '\n' || ch == '\r') {
-      input.trim();  // Remove whitespace
+    while (Serial.available() > 0) {
+    char chr = Serial.read();
+
+    if (chr == '\n' || chr == '\r') {
+      // End of input line
       if (input.length() > 0) {
-        processChassisCommand(input);
-        input = "";
+        int number = input.toInt();
+        block_array[counter] = number;
+        counter += 1;
+        input = ""; // Reset input string
       }
-    } else {
-      input += ch;
+
+      if (counter == 5) {
+        sequence_of_moves(block_array);
+        counter = 0; // Reset counter for next sequence
+        input = "";
+        x=0;
+        y=0;
+        fx=0;
+        fy=0;
+        dx=0;
+        dy=0;
+      }
+    } 
+    else if (chr == ' ') {
+      // Space encountered, end of a number
+      if (input.length() > 0) {
+        int number = input.toInt();
+        block_array[counter] = number;
+        counter += 1;
+        input = ""; // Reset input string
+      }
+    }
+    else {
+      // Build the number string
+      input += chr;
     }
   }
+
+ /*
+  // read serial input e.g. F100; forward 10 cm MR90; clockwise rotation for 90 degrees
+  while (Serial.available() > 0) {
+    char chr = Serial.read();
+
+    if (chr == '\n' || chr == '\r') {
+      input.trim();  // Remove whitespace
+      if (counter == 5) {
+        sequence_of_moves(block_array);
+      }
+      counter = 0;
+      input = "";
+    } 
+    else if(chr != ' '){
+      input +=chr;
+    }
+
+    else {
+      int number = input.toInt();
+      input = "";
+      block_array[counter]= number;
+      counter += 1;
+    }
+  }
+
+  */
 }
 
 void trackRotationStart() {
