@@ -20,7 +20,8 @@ import serial
 MODEL_FILENAME = 'model.tflite'
 LABELS_FILENAME = 'labels.txt'
 
-ARM_SERIAL = "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0042_3433332383235121B092-if00"  # Robotic Arm Arduino
+ARM_SERIAL = "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0042_3433332383235121B092-if00"
+#"/dev/serial/by-id/usb-Arduino__www.arduino.cc__0042_3433332383235121B092-if00"  # Robotic Arm Arduino
 BAUD_RATE = 115200
 
 # define centers of detected object as a global variable, which contains the angle of servos
@@ -72,7 +73,7 @@ def main(port, baud_rate, image_filename=''):
     
     # intialize motors
     # motor = Motors()
-    
+
     #try:
     frameNumber = 0
     while(start):
@@ -137,7 +138,7 @@ def main(port, baud_rate, image_filename=''):
                         bottomright = (int(topleft[0] + pred['boundingBox']['width'] * augmented_image.shape[0]), int(topleft[1] + pred['boundingBox']['height'] * augmented_image.shape[0]))
                         # print(topleft)
                         # print(bottomright)
-                        
+                        prediction = str(pred['tagName'])
                         ######################################
                         # to save the object location
                         # compute the center of boxes
@@ -164,7 +165,11 @@ def main(port, baud_rate, image_filename=''):
                     cv2.waitKey(t_show)  
                     t_0 = time.time()
                     #command_arduino(port, baud_rate)
-                    send_tag(f"{pred['tagName']}")
+                    print(f"{pred['tagName']}")
+                    
+                    print(prediction)
+                    send_tag(prediction)
+                    
                 # Reset the time counter
                 delta = 0
                 
@@ -204,16 +209,31 @@ def send_tag(tag):
     """
     Write an integer to the serial buffer to communicate with Arduino.
     """
+    print("SENDING TAG TO ARDUINO")
     global sending_actions
     arduino = connect_to_arduino(port, baud_rate)
     sending_actions = True
-    arduino.write(f"{tag}\n".encode())  # Send the number followed by a newline
+    response = arduino.readline().decode("utf-8").rstrip()
+    #print(response)
+    if(tag=="Good"):
+        arduino.write(f"Good\n".encode())
+    elif(tag=="Bad"):
+        arduino.write(f"Bad\n".encode())
+    elif(tag == "GS"):
+        arduino.write(f"GS\n".encode())
+    elif(tag == "BS"):
+        arduino.write(f"BS\n".encode())
+    #arduino.write(f"{tag}\n".encode())  # Send the number followed by a newline
     print(f"Sent: {tag}")
-    
+    arduino.flush() 
     # Wait for the Arduino's response
     while True:
-        response = arduino.readline().decode("utf-8").strip()
+
+        #arduino.write(f"Good\n".encode())
+        response = arduino.readline().decode("utf-8").rstrip()
+        print(response)
         if response == "DONE":
+            
             print("Arduino completed the action.")
             sending_actions = False
             break
@@ -231,6 +251,7 @@ def send_number(number):
     # Wait for the Arduino's response
     while True:
         response = arduino.readline().decode("utf-8").strip()
+        print(response)
         if response == "DONE":
             print("Arduino completed the motion.")
             sending_actions = False
