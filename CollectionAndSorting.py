@@ -171,12 +171,7 @@ def PlantPredict(orientation):
     global sending_actions
     sending_actions = False
     numGood=0
-    numBad=0
-    # Load labels
-    with open(LABELS_FILENAME, 'r') as f:
-        labels = [l.strip() for l in f.readlines()]
-
-    
+    numBad=0   
     
     video_object = cv2.VideoCapture(0)
     
@@ -464,6 +459,10 @@ if __name__ == '__main__':
         Arows = []
         Brows = []
         send_arm("G1")
+        # Load labels
+        with open(LABELS_FILENAME, 'r') as f:
+            labels = [l.strip() for l in f.readlines()]
+
         od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
         send_arm("SKYL")
         for i in range(8):
