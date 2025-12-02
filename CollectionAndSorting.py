@@ -277,7 +277,7 @@ def PlantPredict(orientation):
                     print(prediction)
                     
                     if prediction == "Good":  #LEFT BIN (G2)    # ADD NAVIGATION TO MAKE DISTINCTION BETWEEN THREE PLANTS
-                        send_nav("B20")
+                        send_nav("B56")
                         send_arm("HGRABG")
                         if orientation:
                             send_arm("SKYR")
@@ -287,7 +287,7 @@ def PlantPredict(orientation):
 
 
                     elif prediction == "Bad":  # LEFT BIN (G1)
-                        send_nav("B20")
+                        send_nav("B56")
                         send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
@@ -296,6 +296,7 @@ def PlantPredict(orientation):
                         numBad=1
                     
                     elif prediction == "Empty":
+                        send_nav("B28")
                         if orientation:
                             send_arm("SKRET")
                             send_arm("SEEDR")
@@ -310,6 +311,7 @@ def PlantPredict(orientation):
                             send_arm("SKYL")
 
                     elif prediction == "Good Good":#TELL THE NAVIGATION TO MOVE AS WELL
+                        send_nav("B28")
                         send_arm("HGRABG")
                         numGood =2
                         if orientation:
@@ -317,6 +319,7 @@ def PlantPredict(orientation):
                         else:
                             send_arm("SKYL")
                     elif prediction == "Bad Bad":#TELL THE NAVIGATION TO MOVE AS WELL ( TO GRAB "RIGHT" PLANT ALWAYS DUE TO MODEL INACCURACY)
+                        send_nav("B28")
                         send_arm("HGRABB")
                         numBad =2
                         if orientation:
@@ -325,9 +328,10 @@ def PlantPredict(orientation):
                             send_arm("SKYL")
                     elif prediction == "Good Bad":
                         if orientation:
-                            send_nav("B40")
+                            send_nav("B84")
                             send_arm("HGRABB")
                         else:
+                            send_nav("B28")
                             send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
@@ -337,7 +341,9 @@ def PlantPredict(orientation):
                         numBad=1
                     elif prediction == "Bad Good":
                         if orientation:
-                            send_nav("B40")
+                            send_nav("B84")
+                        else:
+                            send_nav("B28")
                         send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
