@@ -67,6 +67,7 @@ def wait_for(ser, token, timeout=15.0):
     while time.time() - start_time < timeout:
         if ser.in_waiting:
             line = ser.readline().decode().strip()
+            print(f"[NAV DEBUG] Received: {line}")
             if line == token:
                 return True
     return False
@@ -98,36 +99,21 @@ def query_yaw_from_nav():
         return 0
 
 def send_nav(cmd, delay=2):
-    """Sends a command to the navigation Arduino, waits for 'DONE', and updates robot pose."""
-    global pose, yaw, current_yaw
+    """Sends a command to the robotic arm and waits for a 'DONE' confirmation."""
+    global arduino_nav
     if not arduino_nav:
-        print(f"Warning: Navigation Arduino not connected, cannot send command: {cmd}")
-        try_reconnect_serial()
+        print(f"Warning: Robotic Nav Arduino not connected, cannot send command: {cmd}")
+        try_reconnect_nav()
         return
     try:
-        yaw_before = None
-        if cmd.startswith(("L", "R", "ML", "MR")) and len(cmd) > 1:
-            yaw_before = query_yaw_from_nav()
-            print(f"Angle before rotation: {yaw_before:.1f} degrees")
         arduino_nav.write(f"{cmd}\n".encode())
         print(f"Sent to Nav: {cmd}")
         if not wait_for(arduino_nav, "DONE", timeout=15.0):
             print(f"Warning: Timed out waiting for 'DONE' from Nav Arduino: {cmd}")
         time.sleep(delay)
-        current_yaw = query_yaw_from_nav()
-        if cmd.startswith(("F", "B")) and len(cmd) > 1:
-            dist = int(cmd[1:]) * (1 if cmd[0] == 'F' else -1)
-            theta = math.radians(yaw)
-            pose[0] += dist * math.cos(theta)
-            pose[1] += dist * math.sin(theta)
-        elif yaw_before is not None:
-            yaw_after = current_yaw
-            delta = normalize_angle(yaw_after - yaw_before)
-            yaw = normalize_angle(yaw + delta)
-            print(f"Updated global yaw: {yaw:.1f} degrees")
     except Exception as e:
         print(f"Warning: Error sending nav command '{cmd}': {e}")
-        try_reconnect_serial()
+        try_reconnect_nav()
 
 def send_arm(cmd, delay=2):
     """Sends a command to the robotic arm and waits for a 'DONE' confirmation."""
@@ -171,7 +157,11 @@ def PlantPredict(orientation):
     global sending_actions
     sending_actions = False
     numGood=0
-    numBad=0   
+    numBad=0
+    # Load labels
+
+
+    
     
     video_object = cv2.VideoCapture(0)
     
@@ -287,7 +277,7 @@ def PlantPredict(orientation):
                     print(prediction)
                     
                     if prediction == "Good":  #LEFT BIN (G2)    # ADD NAVIGATION TO MAKE DISTINCTION BETWEEN THREE PLANTS
-                        send_nav(f"B{middle_plant}")
+                        send_nav("B20")
                         send_arm("HGRABG")
                         if orientation:
                             send_arm("SKYR")
@@ -297,7 +287,7 @@ def PlantPredict(orientation):
 
 
                     elif prediction == "Bad":  # LEFT BIN (G1)
-                        send_nav(f"B{middle_plant}")
+                        send_nav("B20")
                         send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
@@ -335,7 +325,7 @@ def PlantPredict(orientation):
                             send_arm("SKYL")
                     elif prediction == "Good Bad":
                         if orientation:
-                            send_nav(f"B{backward_plant}")
+                            send_nav("B40")
                             send_arm("HGRABB")
                         else:
                             send_arm("HGRABB")
@@ -347,7 +337,7 @@ def PlantPredict(orientation):
                         numBad=1
                     elif prediction == "Bad Good":
                         if orientation:
-                            send_nav(f"B{backward_plant}")
+                            send_nav("B40")
                         send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
@@ -459,10 +449,8 @@ if __name__ == '__main__':
         Arows = []
         Brows = []
         send_arm("G1")
-        # Load labels
         with open(LABELS_FILENAME, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
-
         od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
         send_arm("SKYL")
         for i in range(8):
