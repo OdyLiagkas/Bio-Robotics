@@ -30,18 +30,6 @@ ARM_SERIAL = "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0042_34333323832351
 BAUD_RATE = 115200
 ARM_BAUD = 115200
 
-# define centers of detected object as a global variable, which contains the angle of servos
-centers = []
-PIXELS_TO_MM = 0.3704
-MM_TO_DEGREES = 0.3
-CENTER_X, CENTER_Y = 256, 256
-
-# ====== Global Variables ======
-pose = [0, 0]
-yaw = 0
-is_centered = False
-exit_event = threading.Event()
-
 # ====== Initialize Serial Ports ======
 try:
     arduino_nav = serial.Serial(NAV_SERIAL, BAUD_RATE, timeout=1)
@@ -177,113 +165,9 @@ class TFLiteObjectDetection(ObjectDetection):
         self.interpreter.set_tensor(self.input_index, inputs)
         self.interpreter.invoke()
         return self.interpreter.get_tensor(self.output_index)[0]         
-def detect_and_align_target():
-    """Detects a target, displays it on screen, and sends alignment commands."""
-    global is_centered
-    print("Starting target detection and alignment...")
-    is_centered = False
-    
-    with open(LABELS_FILENAME, 'r') as f:
-        labels = [l.strip() for l in f.readlines()]
-    detector = TFLiteObjectDetection(MODEL_FILENAME, labels)
-    
-    video = cv2.VideoCapture(0)
-    if not video.isOpened():
-        print("Error: Cannot open camera.")
-        return False
-    
-    video.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    video.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    time.sleep(1)
-    
-    print("Searching for targets...")
-    try:
-        while not is_centered and not exit_event.is_set():
-            ret, frame = video.read()
-            if not ret:
-                print("Error: Cannot read video frame.")
-                continue
-            
-            image = helper.update_orientation(frame)
-            image = helper.resize_down_to_1600_max_dim(image)
-            h, w = image.shape[:2]
-            min_dim = min(w, h)
-            square_img = helper.crop_center(image, min_dim, min_dim)
-            input_img = cv2.resize(square_img, (512, 512))
-            
-            predictions = detector.predict_image(Image.fromarray(input_img))
-            
-            best_pred = None
-            max_prob = 0.3
-            for pred in predictions:
-                if pred['probability'] > max_prob:
-                    max_prob = pred['probability']
-                    best_pred = pred
-
-            # --- REVISED: Added visualization logic ---
-            draw_crosshair(input_img, CENTER_X, CENTER_Y) # Draw screen center
-            font = cv2.FONT_HERSHEY_SIMPLEX
-
-            if best_pred:
-                topleft = (int(best_pred['boundingBox']['left'] * 512), int(best_pred['boundingBox']['top'] * 512))
-                bottomright = (int(topleft[0] + best_pred['boundingBox']['width'] * 512), int(topleft[1] + best_pred['boundingBox']['height'] * 512))
-                
-                target_cx = (topleft[0] + bottomright[0]) // 2
-                target_cy = (topleft[1] + bottomright[1]) // 2
-                
-                # Draw bounding box and target center
-                cv2.rectangle(input_img, topleft, bottomright, (0, 0, 255), 2)
-                cv2.circle(input_img, (target_cx, target_cy), 5, (0, 0, 255), -1)
-
-                dx_px = target_cx - CENTER_X
-                dy_px = CENTER_Y - target_cy
-                
-                dx_mm = dx_px * PIXELS_TO_MM
-                dy_mm = dy_px * PIXELS_TO_MM
-                
-                # Display offset text on the image
-                label = f"dx={dx_mm:.1f}mm, dy={dy_mm:.1f}mm"
-                cv2.putText(input_img, label, (topleft[0], topleft[1] - 10), font, 0.6, (255, 255, 255), 2)
-                
-                print(f"Target offset: x={dx_mm:.1f} mm, y={dy_mm:.1f} mm")
-                
-                if abs(dx_mm) > 30:
-                    direction = 'MR' if dx_mm > 0 else 'ML'
-                    angle = int(abs(dx_mm) * MM_TO_DEGREES)
-                    if angle > 0: send_nav(f"{direction}{angle}")
-                elif dy_mm > 15:
-                    send_nav(f"F{int(abs(dy_mm))}")
-                elif dy_mm < -15:
-                    send_nav(f"B{int(abs(dy_mm))}")
-                else:
-                    is_centered = True
-                    print("Success: Target is centered. Preparing to grab.")
-            
-            # Display the annotated image in a window
-            cv2.imshow("Target Alignment View", input_img)
-            
-            # This is crucial for the window to update. It also allows you to quit by pressing 'q'.
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                print("Manual exit from alignment.")
-                exit_event.set()
-                break
-            # --- END REVISED LOGIC ---
-            
-            if is_centered:
-                time.sleep(0.5) # Pause briefly on the centered image
-                break
-            
-    except Exception as e:
-        print(f"Error: Target detection error: {str(e)}")
-        return False
-    finally:
-        video.release()
-        cv2.destroyAllWindows() # Close the video window
-        
-    return is_centered
 
 def PlantPredict(orientation):
-    global centers
+    #global centers
     global sending_actions
     sending_actions = False
     numGood=0
@@ -292,7 +176,7 @@ def PlantPredict(orientation):
     with open(LABELS_FILENAME, 'r') as f:
         labels = [l.strip() for l in f.readlines()]
 
-    od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
+    
     
     video_object = cv2.VideoCapture(0)
     
@@ -514,103 +398,6 @@ def inverse_kinematics(x, y):
     
     return angles
 
-# Function to send a string to the Arduino
-def send_tag(tag):
-    """
-    Write an integer to the serial buffer to communicate with Arduino.
-    """
-    print("SENDING TAG TO ARDUINO")
-    global sending_actions
-    arduino = connect_to_arduino(port, baud_rate)
-    sending_actions = True
-    response = arduino.readline().decode("utf-8").rstrip()
-    #print(response)
-    if(tag=="Good"):
-        arduino.write(f"Good\n".encode())
-    elif(tag=="Bad"):
-        arduino.write(f"Bad\n".encode())
-    elif(tag == "GS"):
-        arduino.write(f"GS\n".encode())
-    elif(tag == "BS"):
-        arduino.write(f"BS\n".encode())
-    #arduino.write(f"{tag}\n".encode())  # Send the number followed by a newline
-    print(f"Sent: {tag}")
-    arduino.flush() 
-    # Wait for the Arduino's response
-    while True:
-
-        #arduino.write(f"Good\n".encode())
-        response = arduino.readline().decode("utf-8").rstrip()
-        print(response)
-        if response == "DONE":
-            
-            print("Arduino completed the action.")
-            sending_actions = False
-            break
-
-# Function to send a number to the Arduino
-def send_number(number):
-    """
-    Write an integer to the serial buffer to communicate with Arduino.
-    """
-    global sending_actions
-    sending_actions = True
-    arduino.write(f"{number}\n".encode())  # Send the number followed by a newline
-    print(f"Sent: {number}")
-    
-    # Wait for the Arduino's response
-    while True:
-        response = arduino.readline().decode("utf-8").strip()
-        print(response)
-        if response == "DONE":
-            print("Arduino completed the motion.")
-            sending_actions = False
-            break
-        
-def connect_to_arduino(port, baud_rate, timeout=1):
-    """
-    Attempt to connect to the Arduino repeatedly until successful.
-    
-    Parameters:
-    port (str): The serial port to connect to (e.g., 'COM3' or '/dev/ttyUSB0').
-    baud_rate (int): The baud rate for the serial communication.
-    timeout (int): The timeout for the serial connection in seconds.
-    
-    Returns:
-    serial.Serial: The connected serial object.
-    """
-    while True:
-        try:
-            # Attempt to create a serial connection
-            arduino = serial.Serial(port, baud_rate, timeout=timeout)
-            print(f"Connected to Arduino on port {port} at {baud_rate} baud.")
-            return arduino
-        except serial.SerialException as e:
-            # If connection fails, print the error and retry after a short delay
-            print(f"Failed to connect to Arduino: {e}")
-            print("Retrying in 2 seconds...")
-            time.sleep(2)
-
-def command_arduino(port, baud_rate):
-    """
-    Listen for (x, y) coordinates, convert them to angles using inverse kinematics,
-    and send the angles to the Arduino.
-    """
-    global centers
-    arduino = connect_to_arduino(port, baud_rate)
-    while True:
-        if len(centers) > 0:
-            while centers:
-                # pop from the beginning
-                center = centers.pop(0)
-                print(f"Found object at ({center[0]}, {center[1]})")
-                angles = inverse_kinematics(*center)
-                print("angles: " + ", ".join(map(str, angles)))
-                # send angles to Arduino
-                for angle in angles:
-                    send_number(angle)    
-        else:
-            time.sleep(1)
 
 # ====== Computer Vision Functions ======
 def warmup_camera():
@@ -628,10 +415,6 @@ def warmup_camera():
     cap.release()
     print("Camera ready.")
 
-def draw_crosshair(image, x, y, size=20, color=(0, 255, 0), thickness=2):
-    """Draws a crosshair on the image for alignment visualization."""
-    cv2.line(image, (x - size, y), (x + size, y), color, thickness)
-    cv2.line(image, (x, y - size), (x, y + size), color, thickness)
 
 def get_usb_path():
     media_dir = f"/media/pi"
@@ -648,9 +431,6 @@ def get_usb_path():
     return None
 
 if __name__ == '__main__':
-    video_path = "output.mp4"
-    port = "/dev/serial/by-id/usb-Arduino__www.arduino.cc__0042_3433332383235121B092-if00"  # Robotic Arm Arduino
-    baud_rate = 115200
     #main_thread = threading.Thread(target=main, args=(video_path,))
     #command_arduino_thread = threading.Thread(target=command_arduino, args=(port, baud_rate))
     #main_thread.start()
@@ -684,7 +464,7 @@ if __name__ == '__main__':
         Arows = []
         Brows = []
         send_arm("G1")
-        
+        od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
         send_arm("SKYL")
         for i in range(8):
             print(f"\n======= Starting Forward Repetition {i+1} =======")
@@ -705,7 +485,7 @@ if __name__ == '__main__':
 
         send_nav("B50")
         send_arm("BB")
-        media_dir = f"/media/pi"
+        
     # Write UTF-8 CSV
         with open(filename, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
