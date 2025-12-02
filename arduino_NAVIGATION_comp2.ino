@@ -171,9 +171,7 @@ void setup() {
   pinMode(limitSwitch, INPUT_PULLUP);
 
   playTwinkleTune();
-  moveChassisDir(FORWARD, 160, current_half_period);//F160
-  moveChassisSideways(RIGHT, 585, current_half_period);//SR585
-  moveChassisDir(FORWARD, 18, current_half_period);//F18
+
 }
 
 volatile bool stopRequested = true;
@@ -285,6 +283,7 @@ void processChassisCommand(String cmd) {
   else if (cmd.startsWith("B")) {
     int dist = cmd.substring(1).toInt();
     moveChassisDir(BACKWARD, dist, current_half_period);
+    Serial.println("DONE");
   }
   // Move Laterally Left: SLxxx ——  
   else if (cmd.startsWith("SL")) {
@@ -315,6 +314,7 @@ void processChassisCommand(String cmd) {
   else if (cmd == "SCAN") {
     measureDistances();
   }
+  else if (cmd=="INIT"){initialize_position();}
 
   else if (cmd == "S") {
     Serial.println("DONE");
@@ -353,9 +353,9 @@ void moveChassisDir(int dir, float mm, int half_period_target) {
 
   // 2. Compute total number of steps
   int steps = round(mm * STEPS_PER_MM);
-  Serial.print("Moving dir="); Serial.print(dir);
-  Serial.print("  mm="); Serial.print(mm);
-  Serial.print(" -> steps="); Serial.println(steps);
+  //Serial.print("Moving dir="); Serial.print(dir);
+  //Serial.print("  mm="); Serial.print(mm);
+  //Serial.print(" -> steps="); Serial.println(steps);
 
   // 3. Number of steps for acceleration/deceleration
   int accel_steps = max((int)(steps * 0.05), 10);
@@ -416,16 +416,16 @@ void moveChassisDir(int dir, float mm, int half_period_target) {
       }
 
       unsigned long dt = millis() - t0;
-      Serial.print("TIME_MS:"); Serial.println(dt);
-      Serial.println("DONE");
+      //Serial.print("TIME_MS:"); Serial.println(dt);
+      //Serial.println("DONE");
       playTwinkleTune();
       return;
     }
   }
   // 6. After completing all steps normally, print elapsed time and completion flag
   unsigned long dt = millis() - t0;
-  Serial.print("TIME_MS:"); Serial.println(dt);
-  Serial.println("DONE");
+  //Serial.print("TIME_MS:"); Serial.println(dt);
+  //Serial.println("DONE");
 }
 
 // Helper function to update total steps based on current direction
@@ -555,10 +555,16 @@ void turnLeftWithMPU(float targetDegrees, int half_period_target) {
 
   trackRotationStop();
   unsigned long dt = millis() - t0;
-  Serial.print("TIME_MS:"); Serial.println(dt);
-  Serial.println("DONE");
+  //Serial.print("TIME_MS:"); Serial.println(dt);
+  //Serial.println("DONE");
 }
 
+void initialize_position(){
+    moveChassisDir(FORWARD, 160, current_half_period);//F160
+  moveChassisSideways(RIGHT, 580, current_half_period);//SR585
+  moveChassisDir(FORWARD, 20, current_half_period);//F18
+  Serial.println("DONE");
+}
 
 // Use MPU6050 to perform an in-place right turn with IMU feedback
 
@@ -597,8 +603,8 @@ void turnRightWithMPU(float targetDegrees, int half_period_target) {
   trackRotationStop();
 
   unsigned long dt = millis() - t0;
-  Serial.print("TIME_MS:"); Serial.println(dt);
-  Serial.println("DONE");
+  //Serial.print("TIME_MS:"); Serial.println(dt);
+  //Serial.println("DONE");
 }
 
 
@@ -649,8 +655,8 @@ void moveChassisSideways(int dir, float mm, int half_period) {
   }
 
   unsigned long dt = millis() - t0;
-  Serial.print("TIME_MS:"); Serial.println(dt);
-  Serial.println("DONE");
+  //Serial.print("TIME_MS:"); Serial.println(dt);
+  //Serial.println("DONE");
 }
 
 // IMU Yaw value:
@@ -711,8 +717,8 @@ void measureDistances() {
   Serial.print("SCAN_RESULT:R="); Serial.println(distanceRight);
   Serial.print("IMU_YAW=");    Serial.println(getYaw());
 
-  Serial.print("TIME_MS:"); Serial.println(millis() - t0);
-  Serial.println("DONE");
+  //Serial.print("TIME_MS:"); Serial.println(millis() - t0);
+  //Serial.println("DONE");
   servo.write(90);
 
 } 
