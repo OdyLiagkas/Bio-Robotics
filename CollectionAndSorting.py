@@ -236,8 +236,8 @@ def PlantPredict(orientation):
                 
                 # Looping through number of predictions
                 for pred in predictions:
-                    if pred['probability'] >= 0.70: # CHANGED PRObAbILITY TO 75
-                        send_nav("STOP")
+                    if pred['probability'] >= 0.75: # CHANGED PRObAbILITY TO 75
+                        #send_nav("STOP")
                         found = True
                         # Draw rectangle for each bounding box based on left, top pixel + width and height
                         topleft = (int(pred['boundingBox']['left'] * augmented_image.shape[0]), int(pred['boundingBox']['top'] * augmented_image.shape[1]))
@@ -277,26 +277,28 @@ def PlantPredict(orientation):
                     print(prediction)
                     
                     if prediction == "Good":  #LEFT BIN (G2)    # ADD NAVIGATION TO MAKE DISTINCTION BETWEEN THREE PLANTS
-                        send_nav("B56")
+                        send_nav("B58")
                         send_arm("HGRABG")
                         if orientation:
                             send_arm("SKYR")
                         else:
                             send_arm("SKYL")
                         numGood=1
+                        send_nav("F58")
 
 
                     elif prediction == "Bad":  # LEFT BIN (G1)
-                        send_nav("B56")
+                        send_nav("B58")
                         send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
                         else:
                             send_arm("SKYL")
                         numBad=1
+                        send_nav("F58")
                     
                     elif prediction == "Empty":
-                        send_nav("B28")
+                        send_nav("B70")
                         if orientation:
                             send_arm("SKRET")
                             send_arm("SEEDR")
@@ -309,9 +311,10 @@ def PlantPredict(orientation):
                             send_arm("SD")
                             send_arm("G1")
                             send_arm("SKYL")
+                        send_nav("F70")
 
                     elif prediction == "Good Good":#TELL THE NAVIGATION TO MOVE AS WELL
-                        send_nav("B28")
+                        #send_nav("B28")
                         send_arm("HGRABG")
                         numGood =2
                         if orientation:
@@ -319,7 +322,7 @@ def PlantPredict(orientation):
                         else:
                             send_arm("SKYL")
                     elif prediction == "Bad Bad":#TELL THE NAVIGATION TO MOVE AS WELL ( TO GRAB "RIGHT" PLANT ALWAYS DUE TO MODEL INACCURACY)
-                        send_nav("B28")
+                        #send_nav("B28")
                         send_arm("HGRABB")
                         numBad =2
                         if orientation:
@@ -328,10 +331,10 @@ def PlantPredict(orientation):
                             send_arm("SKYL")
                     elif prediction == "Good Bad":
                         if orientation:
-                            send_nav("B84")
+                            send_nav("B116")
                             send_arm("HGRABB")
+                            send_nav("F116")
                         else:
-                            send_nav("B28")
                             send_arm("HGRABB")
                         if orientation:
                             send_arm("SKYR")
@@ -339,12 +342,14 @@ def PlantPredict(orientation):
                             send_arm("SKYL")
                         numGood=1
                         numBad=1
+
                     elif prediction == "Bad Good":
                         if orientation:
-                            send_nav("B84")
+                            send_arm("HGRABB")
                         else:
-                            send_nav("B28")
-                        send_arm("HGRABB")
+                            send_nav("B116")
+                            send_arm("HGRABB")
+                            send_nav("F116")
                         if orientation:
                             send_arm("SKYR")
                         else:
@@ -460,24 +465,61 @@ if __name__ == '__main__':
         od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
         send_nav("INIT")
         send_arm("SKYL")
-        for i in range(8):
-            print(f"\n======= Starting Forward Repetition {i+1} =======")
-            send_nav("START")
-            ABase_name = f"Base A{i+1}"
-            Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST FORWARD/LEFT THEN BACKWARD RIGHT
-            Arows.append([ABase_name,Healthy,Unhealthy])
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST FORWARD/LEFT THEN BACKWARD RIGHT
+        Arows.append(["A1",Healthy,Unhealthy])
+        send_nav("F190")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A2",Healthy,Unhealthy])
+        send_nav("F200")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A3",Healthy,Unhealthy])
+        send_nav("F185")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A4",Healthy,Unhealthy])
+        send_nav("F192")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A5",Healthy,Unhealthy])
+        send_nav("F210")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A6",Healthy,Unhealthy])
+        send_nav("F188")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A7",Healthy,Unhealthy])
+        send_nav("F195")
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  
+        Arows.append(["A8",Healthy,Unhealthy])
+
+#CHANGING OF ROW
+        send_nav("F5")
         
+        send_arm("SKRET")
         send_arm("SKYR")
         BACKWARD = True
-        send_nav("PISW")
-        for i in range(8):
-            print(f"\n======= Starting Backward Repetition {i+1} =======")
-            send_nav("START")
-            BBase_name = f"Base B{i+1}"
-            Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST LEFT THEN RIGHT
-            Brows.append([BBase_name,Healthy,Unhealthy])
+        Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST LEFT THEN RIGHT
+        Brows.append(["B1",Healthy,Unhealthy])
+        send_nav("B190")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B2",Healthy,Unhealthy])
+        send_nav("B190")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B3",Healthy,Unhealthy])
+        send_nav("B190")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B4",Healthy,Unhealthy])
+        send_nav("B185")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B5",Healthy,Unhealthy])
+        send_nav("B205")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B6",Healthy,Unhealthy])
+        send_nav("B185")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B7",Healthy,Unhealthy])
+        send_nav("B190")
+        Healthy, Unhealthy = PlantPredict(BACKWARD) 
+        Brows.append(["B8",Healthy,Unhealthy])
 
-        send_nav("B50")
+        send_nav("B70")
         send_arm("BB")
         
     # Write UTF-8 CSV
