@@ -458,6 +458,7 @@ if __name__ == '__main__':
         with open(LABELS_FILENAME, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
         od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
+        send_nav("INIT")
         send_arm("SKYL")
         for i in range(8):
             print(f"\n======= Starting Forward Repetition {i+1} =======")
