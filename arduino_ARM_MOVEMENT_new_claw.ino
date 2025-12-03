@@ -30,7 +30,7 @@ static int seedPos = 30;  // CHANGE THE ORIGINAL POSITION FOR SEED DROPPER
 void setup() {
   Serial.begin(115200);
   FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setBrightness(30);
+  FastLED.setBrightness(255);
 for(int i = 0; i<8; i++){
  leds[i] = CRGB::White;
  }
@@ -74,7 +74,7 @@ void processGripperCommand(String cmd) {
   else if (cmd == "G2") { moveToLeftBin(); } // Arm pulled inside frame w/ claw closed
   else if (cmd == "GL") { rotateBase(155); rotateString(10);} // Claw wide open
   else if (cmd == "GC") { rotateBase(10); } // Claw slightly (med) opened 
-  else if (cmd == "GR") { rotateBase(150); } // Claw fully closed
+  else if (cmd == "GR") { rotateBase(140); } // Claw fully closed
   else if (cmd == "BR") { releaseRightBin();} // Release Right Bin
   else if (cmd == "BL") { releaseLeftBin();} // Release Right Bin
   else if (cmd == "BB") { releaseBothBins();} // Release Right Bin
@@ -82,6 +82,16 @@ void processGripperCommand(String cmd) {
   else if (cmd == "SR") {moveServoSmoothly(servoChannels[7], seedPos, 30, 10, 7);}
   else if (cmd == "SP") {setSeedPose();}
   else if (cmd == "TESTG") {GrabLeftPlant();}
+  else if (cmd=="SKYR") {SkyRight();}
+  else if (cmd == "HGRABB") {HighGrab(); delay(500); rotateBase(145); delay(500); SkymoveToRightBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
+  else if (cmd == "HGRABG") {HighGrab(); delay(500); rotateBase(145); delay(500); SkymoveToLeftBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
+  else if (cmd=="SKYL") {SkyLeft();}
+  else if (cmd=="SKRET") {SkyReturn();} // return from sky
+  else if (cmd=="SEEDR") {SeedRight();Serial.println("DONE");} // THEN PYTHON FILE SEND SD!
+  else if (cmd=="SEEDL") {SeedLeft();Serial.println("DONE");} 
+  else if (cmd=="SERET") {SeedReturn();} // return from seed
+  else if (cmd=="HIGH") {HighGrab();}
+  else if (cmd=="SKYBIN") {SkymoveToRightBin();}
   else if (cmd == "GRABR"){ GrabRightPlant(); delay(500); rotateBase(145); delay(500); moveToRightBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
   else if (cmd == "GRABL"){ GrabLeftPlant(); delay(500);  rotateBase(145); delay(500);  moveToLeftBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
   else if (cmd=="TEST") {rotateMotor(12,130);}
@@ -95,8 +105,8 @@ void processGripperCommand(String cmd) {
 void releasenextSeed(int& seedPos) {
   moveServoSmoothly(servoChannels[7], seedPos, seedPos+20, 10, 7);
   seedPos +=10;
-  Serial.print("TIME_MS:0, DONE"); // Simplified response
-  Serial.println();
+  Serial.println("DONE"); // Simplified response
+
 }
 // Moves a servo for scanning purposes.
 void rotateString(int targetAngle) {
@@ -143,6 +153,87 @@ int angleToPulse(int angle, int servoIndex) {
   angle = constrain(angle, SERVO_PHY_MIN[servoIndex], SERVO_PHY_MAX[servoIndex]);
   return map(angle, 0, 180, SERVOMIN_PULSE, SERVOMAX_PULSE);
 }
+
+void SkymoveToRightBin() {
+   
+  moveServoSmoothly(servoChannels[1], 150, 80, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 125, 80, 10, 2);  // Wrist
+  
+  moveServoSmoothly(servoChannels[0], 15, 30, 10, 0); // Elbow
+  moveServoSmoothly(servoChannels[5], 145, 110, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 105, 10, 4); // Soulder
+
+  //moveServoSmoothly(servoChannels[3], 145, 40, 3, 3);  // Claw
+  //Serial.println("DONE");
+}
+
+void SkymoveToLeftBin() {
+  moveServoSmoothly(servoChannels[1], 150, 80, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 125, 80, 10, 2);  // Wrist
+  
+  moveServoSmoothly(servoChannels[0], 15, 30, 10, 0); // Elbow
+  moveServoSmoothly(servoChannels[5], 145, 110, 10, 5);  // Wrist2
+  //moveServoSmoothly(servoChannels[3], 110, 40, 3, 3);  // Claw
+  moveServoSmoothly(servoChannels[4], 98, 85, 10, 4); // Soulder
+  //Serial.println("DONE");
+}
+
+void HighGrab(){
+  moveServoSmoothly(servoChannels[0], 35, 10, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 95, 70, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 165, 125, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[5], 160, 150, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[1], 70, 150, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[0], 10, 15, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 150, 145, 10, 5);  // Wrist2
+}
+
+void SeedRight(){
+   moveServoSmoothly(servoChannels[0], 50, 25, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 150, 10, 5);  // Wrist2
+moveServoSmoothly(servoChannels[4], 98, 62, 10, 4); // Soulder
+}
+
+void SeedLeft(){
+   moveServoSmoothly(servoChannels[0], 50, 25, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 150, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 135, 10, 4); // Soulder
+}
+
+void SeedReturn(){
+  moveServoSmoothly(servoChannels[4], 88, 98, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[5], 123, 113, 10, 5);  // Wrist2
+   moveServoSmoothly(servoChannels[0], 40, 50, 10, 0); // Eblow
+  
+}
+
+void SkyReturn(){
+  moveServoSmoothly(servoChannels[4], 88, 98, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[5], 160, 113, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[2], 165, 80, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[1], 95, 170, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[0], 35, 50, 10, 0); // Eblow
+  Serial.println("DONE"); 
+}
+
+void SkyLeft(){
+  moveServoSmoothly(servoChannels[0], 50, 35, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 170, 95, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 80, 165, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[5], 113, 160, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 133, 10, 4); // Soulder
+  Serial.println("DONE"); 
+}
+
+void SkyRight(){  
+  moveServoSmoothly(servoChannels[0], 50, 35, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 170, 95, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 80, 165, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[5], 113, 160, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 63, 10, 4); // Soulder
+  Serial.println("DONE");
+}
+
 
 // --- Pre-existing Arm Pose Functions ---
 void setDefaultPose() {
@@ -241,8 +332,8 @@ void releaseLeftBin(){
 }
 
 void releaseBothBins(){
-  moveServoSmoothly(servoChannels[15], 38, 100, 40, 15);
-  moveServoSmoothly(servoChannels[14], 38, 100, 40, 14);
+  moveServoSmoothly(servoChannels[15], 38, 100, 10, 15);
+  moveServoSmoothly(servoChannels[14], 38, 100, 10, 14);
   moveServoSmoothly(servoChannels[15], 100, 38, 10, 15);
   moveServoSmoothly(servoChannels[14], 100, 38, 10, 14);
   Serial.println("DONE");
