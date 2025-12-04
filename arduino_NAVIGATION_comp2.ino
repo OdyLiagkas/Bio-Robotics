@@ -279,6 +279,12 @@ void processChassisCommand(String cmd) {
     int dist = cmd.substring(1).toInt();
     moveChassisDir(FORWARD,  dist, current_half_period);
   }
+  // Move Forward: Mxxx  xxx==correspoonds to cm (or mm) it will travel!!!!
+  else if (cmd.startsWith("M")) {
+    int dist = cmd.substring(1).toInt();
+    moveChassisDir(FORWARD,  dist, current_half_period);
+    Serial.println("DONE");
+  }
   // Move Back: Bxxx ——  
   else if (cmd.startsWith("B")) {
     int dist = cmd.substring(1).toInt();
@@ -560,9 +566,9 @@ void turnLeftWithMPU(float targetDegrees, int half_period_target) {
 }
 
 void initialize_position(){
-    moveChassisDir(FORWARD, 160, current_half_period);//F160
-  moveChassisSideways(RIGHT, 580, current_half_period);//SR585
-  moveChassisDir(FORWARD, 20, current_half_period);//F18
+    moveChassisDir(FORWARD, 165, current_half_period);//F132
+  moveChassisSideways(RIGHT, 580, current_half_period);//SR580
+  //moveChassisDir(FORWARD, 20, current_half_period);//F18
   Serial.println("DONE");
 }
 
