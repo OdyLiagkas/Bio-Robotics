@@ -279,12 +279,6 @@ void processChassisCommand(String cmd) {
     int dist = cmd.substring(1).toInt();
     moveChassisDir(FORWARD,  dist, current_half_period);
   }
-  // Move Forward: Mxxx  xxx==correspoonds to cm (or mm) it will travel!!!!
-  else if (cmd.startsWith("M")) {
-    int dist = cmd.substring(1).toInt();
-    moveChassisDir(FORWARD,  dist, current_half_period);
-    Serial.println("DONE");
-  }
   // Move Back: Bxxx ——  
   else if (cmd.startsWith("B")) {
     int dist = cmd.substring(1).toInt();
@@ -310,6 +304,12 @@ void processChassisCommand(String cmd) {
   else if (cmd.startsWith("MR")) {
     int angle = cmd.substring(2).toInt();
     turnRightWithMPU(angle * TURN_CORRECTION_K, 100);
+  }
+    // Move Forward: Mxxx  xxx==correspoonds to cm (or mm) it will travel!!!!
+  else if (cmd.startsWith("M")) {
+    int dist = cmd.substring(1).toInt();
+    moveChassisDir(FORWARD,  dist, current_half_period);
+    Serial.println("DONE");
   }
   // Yaw value  ==> measures the yaw rotation angle! 
   else if (cmd == "YAW") {
