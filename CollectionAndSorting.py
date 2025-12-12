@@ -1,8 +1,3 @@
-# The steps implemented in the object detection sample code: 
-# 1. for an image of width and height being (w, h) pixels, resize image to (w', h'), where w/h = w'/h' and w' x h' = 262144
-# 2. resize network input size to (w', h')
-# 3. pass the image to network and do inference
-# (4. if inference speed is too slow for you, try to make w' x h' smaller, which is defined with DEFAULT_INPUT_SIZE (in object_detection.py or ObjectDetection.cs))
 import sys
 import threading
 from tflite_runtime.interpreter import Interpreter
@@ -236,7 +231,7 @@ def PlantPredict(orientation):
                 
                 # Looping through number of predictions
                 for pred in predictions:
-                    if pred['probability'] >= 0.5: # CHANGED PRObAbILITY TO 75
+                    if pred['probability'] >= 0.75: # CHANGED PRObAbILITY TO 75
                         #send_nav("STOP")
                         found = True
                         # Draw rectangle for each bounding box based on left, top pixel + width and height
@@ -278,88 +273,68 @@ def PlantPredict(orientation):
                     
                     if prediction == "Good":  #LEFT BIN (G2)    # ADD NAVIGATION TO MAKE DISTINCTION BETWEEN THREE PLANTS
                         #send_nav("B58")
-                        send_arm("HGRABG")
                         if orientation:
-                            send_arm("SKYR")
+                            send_arm("RHGRABG")
                         else:
-                            send_arm("SKYL")
+                            send_arm("LHGRABG")
                         numGood=1
                         #send_nav("M58")
 
 
                     elif prediction == "Bad":  # LEFT BIN (G1)
                         #send_nav("B58")
-                        send_arm("HGRABB")
                         if orientation:
-                            send_arm("SKYR")
+                            send_arm("RHGRABB")
                         else:
-                            send_arm("SKYL")
+                            send_arm("LHGRABB")
                         numBad=1
                         #send_nav("M58")
                     
                     elif prediction == "Empty":
                         #send_nav("B70")
                         if orientation:
-                            send_arm("SKRET")
-                            send_arm("SEEDR")
-                            send_arm("SD")            #TELL THE NAVIGATION TO MOVE AS WELL
-                            send_arm("G1")
-                            send_arm("SKYR")
+                            send_arm("RSEED")
                         else:
-                            send_arm("SKRET")
-                            send_arm("SEEDL")
-                            send_arm("SD")
-                            send_arm("G1")
-                            send_arm("SKYL")
+                            send_arm("LSEED")
                         #send_nav("M70")
 
                     elif prediction == "Good Good":#TELL THE NAVIGATION TO MOVE AS WELL
                         send_nav("M28")
-                        send_arm("HGRABG")
                         numGood =2
                         if orientation:
-                            send_arm("SKYR")
+                            send_arm("RHGRABG")
                         else:
-                            send_arm("SKYL")
+                            send_arm("LHGRABG")
                             send_nav("B28")
                     elif prediction == "Bad Bad":#TELL THE NAVIGATION TO MOVE AS WELL ( TO GRAB "RIGHT" PLANT ALWAYS DUE TO MODEL INACCURACY)
                         send_nav("M28")
-                        send_arm("HGRABB")
                         numBad =2
                         if orientation:
-                            send_arm("SKYR")
+                            send_arm("RHGRABB")
                         else:
-                            send_arm("SKYL")
+                            send_arm("LHGRABB")
                         send_nav("B28")
                     elif prediction == "Good Bad":
                         if orientation:
                             send_nav("B28")
-                            send_arm("HGRABB")
+                            send_arm("RHGRABB")
                             send_nav("M28")
                         else:
                             send_nav("M28")
-                            send_arm("HGRABB")
+                            send_arm("LHGRABB")
                             send_nav("B28")
-                        if orientation:
-                            send_arm("SKYR")
-                        else:
-                            send_arm("SKYL")
                         numGood=1
                         numBad=1
 
                     elif prediction == "Bad Good":
                         if orientation:
                             send_nav("M28")
-                            send_arm("HGRABB")
+                            send_arm("RHGRABB")
                             send_nav("B28")
                         else:
                             send_nav("B28")
-                            send_arm("HGRABB")
+                            send_arm("LHGRABB")
                             send_nav("M28")
-                        if orientation:
-                            send_arm("SKYR")
-                        else:
-                            send_arm("SKYL")
                         numGood=1
                         numBad=1
                     #send_tag(prediction)  # ADD CONDITIONS!!!
@@ -465,16 +440,17 @@ if __name__ == '__main__':
 
         Arows = []
         Brows = []
-        send_arm("G1")
+        send_arm("SKYL")
         with open(LABELS_FILENAME, 'r') as f:
             labels = [l.strip() for l in f.readlines()]
         od_model = TFLiteObjectDetection(MODEL_FILENAME, labels)
         send_nav("INIT")
-        send_nav("B50")
-        send_arm("SKYL")
+        #send_nav("B50")
+        #send_arm("SKYL")
+        send_nav("M230")
         Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST FORWARD/LEFT THEN BACKWARD RIGHT
         Arows.append(["A1",Healthy,Unhealthy])
-        send_nav("M190")
+        send_nav("M200")
         Healthy, Unhealthy = PlantPredict(BACKWARD)  
         Arows.append(["A2",Healthy,Unhealthy])
         send_nav("M200")
@@ -497,10 +473,9 @@ if __name__ == '__main__':
         Arows.append(["A8",Healthy,Unhealthy])
 
 #CHANGING OF ROW
-        send_nav("M5")
+        send_nav("B67")
         
-        send_arm("SKRET")
-        send_arm("SKYR")
+        send_arm("SKYC")
         BACKWARD = True
         Healthy, Unhealthy = PlantPredict(BACKWARD)  # FIRST LEFT THEN RIGHT
         Brows.append(["B1",Healthy,Unhealthy])
@@ -526,7 +501,7 @@ if __name__ == '__main__':
         Healthy, Unhealthy = PlantPredict(BACKWARD) 
         Brows.append(["B8",Healthy,Unhealthy])
 
-        send_nav("B70")
+        send_nav("B230")
         send_arm("BB")
         
     # Write UTF-8 CSV
