@@ -74,27 +74,31 @@ void processGripperCommand(String cmd) {
   else if (cmd == "G2") { moveToLeftBin(); } // Arm pulled inside frame w/ claw closed
   else if (cmd == "GL") { rotateBase(155); rotateString(10);} // Claw wide open
   else if (cmd == "GC") { rotateBase(10); } // Claw slightly (med) opened 
-  else if (cmd == "GR") { rotateBase(140); } // Claw fully closed
+  else if (cmd == "GR") { rotateBase(145); } // Claw fully closed
   else if (cmd == "BR") { releaseRightBin();} // Release Right Bin
   else if (cmd == "BL") { releaseLeftBin();} // Release Right Bin
   else if (cmd == "BB") { releaseBothBins();} // Release Right Bin
   else if (cmd == "SD") {releasenextSeed(seedPos);}
   else if (cmd == "SR") {moveServoSmoothly(servoChannels[7], seedPos, 30, 10, 7);}
   else if (cmd == "SP") {setSeedPose();}
+  else if (cmd == "CL") {CameraLeft();}
   else if (cmd == "TESTG") {GrabLeftPlant();}
-  else if (cmd=="SKYR") {SkyRight();}
-  else if (cmd == "HGRABB") {HighGrab(); delay(500); rotateBase(145); delay(500); SkymoveToRightBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
-  else if (cmd == "HGRABG") {HighGrab(); delay(500); rotateBase(145); delay(500); SkymoveToLeftBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
-  else if (cmd=="SKYL") {SkyLeft();}
+  else if (cmd=="SKYR") {nSkyRight();}
+  else if (cmd == "RHGRABB") {moveServoSmoothly(servoChannels[4], 160, 155, 10, 4);nHighGrab(); delay(500);moveServoSmoothly(servoChannels[4], 155, 162, 10, 4); rotateBase(145); delay(500); nSkymoveToRightBin(); delay(1000); rotateBase(10); delay(2000); nSkyRight();}
+  else if (cmd == "RHGRABG") {moveServoSmoothly(servoChannels[4], 160, 155, 10, 4);nHighGrab(); delay(500);moveServoSmoothly(servoChannels[4], 155, 162, 10, 4); rotateBase(145); delay(500); nSkymoveToLeftBin(); delay(1000); rotateBase(10); delay(2000); nSkyRight();}
+  else if (cmd == "LHGRABB") {moveServoSmoothly(servoChannels[4], 38, 33, 10, 4); nHighGrab(); delay(500); moveServoSmoothly(servoChannels[4], 33, 40, 10, 4); rotateBase(145); delay(500); nSkymoveToRightBin(); delay(1000); rotateBase(10); delay(2000); nSkyLeft();}
+  else if (cmd == "LHGRABG") {moveServoSmoothly(servoChannels[4], 38, 33, 10, 4); nHighGrab(); delay(500); moveServoSmoothly(servoChannels[4], 33, 40, 10, 4);rotateBase(145); delay(500); nSkymoveToLeftBin(); delay(1000); rotateBase(10); delay(2000); nSkyLeft();}
+  else if (cmd=="SKYL") {nSkyLeft();}
+  else if (cmd=="SKYC") {fromLtoR();}
   else if (cmd=="SKRET") {SkyReturn();} // return from sky
-  else if (cmd=="SEEDR") {SeedRight();Serial.println("DONE");} // THEN PYTHON FILE SEND SD!
-  else if (cmd=="SEEDL") {SeedLeft();Serial.println("DONE");} 
+  else if (cmd=="RSEED") {nSeedRight();releasenextSeed(seedPos);delay(1000);nSeedRightRet();} // THEN PYTHON FILE SEND SD!
+  else if (cmd=="LSEED") {nSeedLeft();releasenextSeed(seedPos);delay(1000);nSeedLeftRet();} 
   else if (cmd=="SERET") {SeedReturn();} // return from seed
-  else if (cmd=="HIGH") {HighGrab();}
+  else if (cmd=="HIGH") {nHighGrab();}
   else if (cmd=="SKYBIN") {SkymoveToRightBin();}
   else if (cmd == "GRABR"){ GrabRightPlant(); delay(500); rotateBase(145); delay(500); moveToRightBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
   else if (cmd == "GRABL"){ GrabLeftPlant(); delay(500);  rotateBase(145); delay(500);  moveToLeftBin(); delay(1000); rotateBase(10); delay(2000); setDefaultPose();}
-  else if (cmd=="TEST") {rotateMotor(12,130);}
+  else if (cmd=="TEST") {nSeedRight();}
   // REVISED: Added handler for the ZERO command to support Python handshake
   else if (cmd == "ZERO") {
     Serial.println("BASELINE_RESET");
@@ -103,9 +107,9 @@ void processGripperCommand(String cmd) {
 }
 // Moves a servo to release the next seed.
 void releasenextSeed(int& seedPos) {
-  moveServoSmoothly(servoChannels[7], seedPos, seedPos+20, 10, 7);
-  seedPos +=10;
-  Serial.println("DONE"); // Simplified response
+  moveServoSmoothly(servoChannels[7], seedPos, seedPos+22, 10, 7);
+  seedPos +=12;
+  //Serial.println("DONE"); // Simplified response
 
 }
 // Moves a servo for scanning purposes.
@@ -216,6 +220,105 @@ void SkyReturn(){
   Serial.println("DONE"); 
 }
 
+void nHighGrab(){
+  moveServoSmoothly(servoChannels[2], 45, 75, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[1], 65, 40, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[0], 40, 20, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 130, 130, 10, 5);  // Wrist2
+}
+
+
+void nSkymoveToLeftBin() {
+  moveServoSmoothly(servoChannels[1], 65, 80, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 45, 80, 10, 2);  // Wrist
+  
+  moveServoSmoothly(servoChannels[0], 40, 30, 10, 0); // Elbow
+  moveServoSmoothly(servoChannels[5], 130, 110, 10, 5);  // Wrist2
+  //moveServoSmoothly(servoChannels[3], 110, 40, 3, 3);  // Claw
+  moveServoSmoothly(servoChannels[4], 98, 85, 10, 4); // Soulder
+  //Serial.println("DONE");
+}
+
+void nSkymoveToRightBin() {
+   
+  moveServoSmoothly(servoChannels[1], 65, 80, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 45, 80, 10, 2);  // Wrist
+  
+  moveServoSmoothly(servoChannels[0], 40, 30, 10, 0); // Elbow
+  moveServoSmoothly(servoChannels[5], 130, 110, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 105, 10, 4); // Soulder
+
+  //moveServoSmoothly(servoChannels[3], 145, 40, 3, 3);  // Claw
+  //Serial.println("DONE");
+}
+
+void nSeedRight(){  
+  moveServoSmoothly(servoChannels[1], 65, 100, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[5], 130, 113, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 160, 38, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 40, 10, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 100, 130, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 45, 170, 10, 2);  // Wrist
+  //moveServoSmoothly(servoChannels[5], 113, 113, 10, 5);  // Wrist2
+}
+void nSeedRightRet(){  
+  //moveServoSmoothly(servoChannels[1], 65, 100, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 170, 45, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[4], 38, 160, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 10, 40, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 130, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[1], 130, 65, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 170, 45, 10, 2);  // Wrist
+  Serial.println("DONE");
+}
+
+void nSeedLeft(){
+  moveServoSmoothly(servoChannels[1], 65, 100, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[5], 130, 113, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 38, 160, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 40, 10, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 100, 130, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 45, 170, 10, 2);  // Wrist
+  //moveServoSmoothly(servoChannels[5], 113, 113, 10, 5);  // Wrist2
+}
+
+void nSeedLeftRet(){  
+  //moveServoSmoothly(servoChannels[1], 65, 100, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 170, 45, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[4], 160, 38, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 10, 40, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 130, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[1], 130, 65, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 170, 45, 10, 2);  // Wrist
+  Serial.println("DONE");
+}
+
+void nSkyLeft(){
+  moveServoSmoothly(servoChannels[4], 98, 38, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 50, 40, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 130, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[1], 170, 65, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 80, 45, 10, 2);  // Wrist
+  Serial.println("DONE"); 
+}
+
+void fromLtoR(){
+  moveServoSmoothly(servoChannels[2], 45, 85, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[4], 38, 160, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[2], 85, 45, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[0], 40, 38, 10, 0); // Eblow
+  Serial.println("DONE");
+}
+
+void nSkyRight(){  
+  moveServoSmoothly(servoChannels[4], 98, 160, 10, 4); // Soulder
+  moveServoSmoothly(servoChannels[0], 50, 38, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[5], 113, 130, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[1], 170, 65, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 80, 45, 10, 2);  // Wrist
+  Serial.println("DONE");
+}
+
 void SkyLeft(){
   moveServoSmoothly(servoChannels[0], 50, 35, 10, 0); // Eblow
   moveServoSmoothly(servoChannels[1], 170, 95, 10, 1);  // Elbow2
@@ -224,7 +327,14 @@ void SkyLeft(){
   moveServoSmoothly(servoChannels[4], 98, 133, 10, 4); // Soulder
   Serial.println("DONE"); 
 }
-
+void CameraLeft(){
+  moveServoSmoothly(servoChannels[0], 50, 35, 10, 0); // Eblow
+  moveServoSmoothly(servoChannels[1], 170, 95, 10, 1);  // Elbow2
+  moveServoSmoothly(servoChannels[2], 80, 165, 10, 2);  // Wrist
+  moveServoSmoothly(servoChannels[5], 113, 160, 10, 5);  // Wrist2
+  moveServoSmoothly(servoChannels[4], 98, 170, 10, 4); // Soulder
+  Serial.println("DONE"); 
+}
 void SkyRight(){  
   moveServoSmoothly(servoChannels[0], 50, 35, 10, 0); // Eblow
   moveServoSmoothly(servoChannels[1], 170, 95, 10, 1);  // Elbow2
