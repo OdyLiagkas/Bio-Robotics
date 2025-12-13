@@ -7,6 +7,7 @@ import numpy as np
 import threading
 import tflite_runtime.interpreter as tf
 from PIL import Image
+
 #from object_detection import ObjectDetection
 import helper
 import signal
@@ -98,36 +99,21 @@ def query_yaw_from_nav():
         return 0
 
 def send_nav(cmd, delay=2):
-    """Sends a command to the navigation Arduino, waits for 'DONE', and updates robot pose."""
-    global pose, yaw, current_yaw
+    """Sends a command to the robotic arm and waits for a 'DONE' confirmation."""
+    global arduino_nav
     if not arduino_nav:
-        print(f"Warning: Navigation Arduino not connected, cannot send command: {cmd}")
-        try_reconnect_serial()
+        print(f"Warning: Robotic Nav Arduino not connected, cannot send command: {cmd}")
+        try_reconnect_nav()
         return
     try:
-        yaw_before = None
-        if cmd.startswith(("L", "R", "ML", "MR")) and len(cmd) > 1:
-            yaw_before = query_yaw_from_nav()
-            print(f"Angle before rotation: {yaw_before:.1f} degrees")
         arduino_nav.write(f"{cmd}\n".encode())
         print(f"Sent to Nav: {cmd}")
         if not wait_for(arduino_nav, "DONE", timeout=15.0):
             print(f"Warning: Timed out waiting for 'DONE' from Nav Arduino: {cmd}")
         time.sleep(delay)
-        current_yaw = query_yaw_from_nav()
-        if cmd.startswith(("M", "B")) and len(cmd) > 1:
-            dist = int(cmd[1:]) * (1 if cmd[0] == 'M' else -1)
-            theta = math.radians(yaw)
-            pose[0] += dist * math.cos(theta)
-            pose[1] += dist * math.sin(theta)
-        elif yaw_before is not None:
-            yaw_after = current_yaw
-            delta = normalize_angle(yaw_after - yaw_before)
-            yaw = normalize_angle(yaw + delta)
-            print(f"Updated global yaw: {yaw:.1f} degrees")
     except Exception as e:
         print(f"Warning: Error sending nav command '{cmd}': {e}")
-        try_reconnect_serial()
+        try_reconnect_nav()
 
 def send_arm(cmd, delay=2):
     """Sends a command to the robotic arm and waits for a 'DONE' confirmation."""
@@ -260,7 +246,7 @@ def detect_and_align_target():
                     angle = int(abs(dx_mm) * MM_TO_DEGREES)
                     if angle > 0: send_nav(f"{direction}{angle}")
                 elif dy_mm > 15:
-                    send_nav(f"M{int(abs(dy_mm))}")
+                    send_nav(f"F{int(abs(dy_mm))}")
                 elif dy_mm < -15:
                     send_nav(f"B{int(abs(dy_mm))}")
                 else:
@@ -337,12 +323,28 @@ if __name__ == "__main__":
         yaw = query_yaw_from_nav()
         print(f"Initial IMU angle: {yaw} degrees")
         
-            
+        send_nav("M220")    
         #warmup_camera()
-        for i in range(10):
+        for i in range(4):
             print(f"\n======= Starting Target Repetition {i+1} =======")
             
-            send_nav("M220")  #M is for forward that returns DONE at the end (we removed that from F(
+            
+            send_arm("GRABR")
+            send_arm("GRABL")
+            #time.sleep(8)
+            send_arm("G1")
+            #time.sleep(10)
+            send_nav("M220")
+            send_nav("B220")
+            send_arm("G0")
+            #time.sleep(2)
+        send_nav("B220")
+        send_arm("BB")
+        #warmup_camera()
+        for i in range(4):
+            print(f"\n======= Starting Target Repetition {i+1} =======")
+            
+            send_nav("M220")
             send_arm("GRABR")
             send_arm("GRABL")
             #time.sleep(8)
@@ -354,7 +356,6 @@ if __name__ == "__main__":
             send_arm("BB")
             #time.sleep(2)
 
-
         
     except Exception as e:
         print(f"Error: Program error: {str(e)}")
@@ -362,3 +363,4 @@ if __name__ == "__main__":
         if arduino_nav: arduino_nav.close()
         if arduino_arm: arduino_arm.close()
         print("Program finished.")
+
