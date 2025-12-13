@@ -115,8 +115,8 @@ def send_nav(cmd, delay=2):
             print(f"Warning: Timed out waiting for 'DONE' from Nav Arduino: {cmd}")
         time.sleep(delay)
         current_yaw = query_yaw_from_nav()
-        if cmd.startswith(("F", "B")) and len(cmd) > 1:
-            dist = int(cmd[1:]) * (1 if cmd[0] == 'F' else -1)
+        if cmd.startswith(("M", "B")) and len(cmd) > 1:
+            dist = int(cmd[1:]) * (1 if cmd[0] == 'M' else -1)
             theta = math.radians(yaw)
             pose[0] += dist * math.cos(theta)
             pose[1] += dist * math.sin(theta)
@@ -260,7 +260,7 @@ def detect_and_align_target():
                     angle = int(abs(dx_mm) * MM_TO_DEGREES)
                     if angle > 0: send_nav(f"{direction}{angle}")
                 elif dy_mm > 15:
-                    send_nav(f"F{int(abs(dy_mm))}")
+                    send_nav(f"M{int(abs(dy_mm))}")
                 elif dy_mm < -15:
                     send_nav(f"B{int(abs(dy_mm))}")
                 else:
@@ -342,13 +342,13 @@ if __name__ == "__main__":
         for i in range(10):
             print(f"\n======= Starting Target Repetition {i+1} =======")
             
-            send_nav("F220")
+            send_nav("M220")  #M is for forward that returns DONE at the end (we removed that from F(
             send_arm("GRABR")
             send_arm("GRABL")
             #time.sleep(8)
             send_arm("G1")
             #time.sleep(10)
-            send_nav("F220")
+            send_nav("M220")
             send_nav("B440")
             send_arm("G0")
             send_arm("BB")
